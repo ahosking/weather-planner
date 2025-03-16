@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import requests
 from datetime import datetime, timedelta
+import argparse
 
 load_dotenv()
 
@@ -82,4 +83,11 @@ def get_weather():
         return jsonify({"error": "Weather data not available"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    parser = argparse.ArgumentParser(description='Weather Planner App')
+    parser.add_argument('--host', default='127.0.0.1', help='Host to run the server on')
+    parser.add_argument('--port', type=int, default=5000, help='Port to run the server on')
+    args = parser.parse_args()
+    
+    print(f"\nStarting server on {args.host}:{args.port}")
+    print("To access from other devices on your network, use your computer's IP address")
+    app.run(host=args.host, port=args.port, debug=True)
