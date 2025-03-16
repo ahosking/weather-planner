@@ -196,6 +196,7 @@ class WeatherPlanner {
         card.querySelector('.remove-btn').addEventListener('click', () => this.removeCity(date));
         
         this.weatherResults.appendChild(card);
+        this.sortWeatherCards();
     }
 
     displayError(cityName, date) {
@@ -213,6 +214,19 @@ class WeatherPlanner {
         card.querySelector('.remove-btn').addEventListener('click', () => this.removeCity(date));
         
         this.weatherResults.appendChild(card);
+        this.sortWeatherCards();
+    }
+
+    sortWeatherCards() {
+        const cards = Array.from(this.weatherResults.children);
+        cards.sort((a, b) => {
+            const dateA = a.getAttribute('data-date');
+            const dateB = b.getAttribute('data-date');
+            return dateA.localeCompare(dateB);
+        });
+        
+        // Reappend cards in sorted order
+        cards.forEach(card => this.weatherResults.appendChild(card));
     }
 
     removeCity(date) {
@@ -240,10 +254,12 @@ class WeatherPlanner {
 
     saveToStorage() {
         const data = {
-            cities: Array.from(this.selectedCities.entries()).map(([date, city]) => ({
-                date,
-                city
-            }))
+            cities: Array.from(this.selectedCities.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([date, city]) => ({
+                    date,
+                    city
+                }))
         };
         localStorage.setItem('weatherPlannerData', JSON.stringify(data));
     }
@@ -252,13 +268,17 @@ class WeatherPlanner {
         const savedData = localStorage.getItem('weatherPlannerData');
         if (savedData) {
             const data = JSON.parse(savedData);
+            // Sort the saved cities by date before loading
+            data.cities.sort((a, b) => a.date.localeCompare(b.date));
+            
             data.cities.forEach(item => {
                 this.selectedCities.set(item.date, item.city);
             });
             
             this.updateItinerary();
-            this.selectedCities.forEach((city, date) => {
-                this.fetchWeatherForCity(date, city);
+            // Load weather data in date order
+            data.cities.forEach(item => {
+                this.fetchWeatherForCity(item.date, item.city);
             });
         }
     }
