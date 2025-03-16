@@ -1,0 +1,35 @@
+.weather-icon {
+    margin: 1rem 0;
+}
+
+.weather-icon img {
+    width: 64px;
+    height: 64px;
+}
+
+.city-input {
+    position: relative;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.temperature {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.description {
+    text-transform: capitalize;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+    
+    h1 {
+        font-size: 1.75rem;
+    }
+}
