@@ -157,22 +157,29 @@ class WeatherPlanner {
         cardElement.setAttribute('data-date', date);
         
         // Find the forecast for our specific date
-        // Add timezone offset to match local date
         const targetDate = new Date(date);
         targetDate.setMinutes(targetDate.getMinutes() + targetDate.getTimezoneOffset());
+        targetDate.setHours(12, 0, 0, 0); // Set to noon for consistent matching
         
-        const forecast = data.list.find(item => {
-            const itemDate = new Date(item.dt * 1000);
-            return itemDate.toDateString() === targetDate.toDateString();
-        });
+        // Find the forecast closest to noon on the target date
+        const forecasts = data.list.map(item => ({
+            forecast: item,
+            date: new Date(item.dt * 1000),
+            diff: Math.abs(new Date(item.dt * 1000) - targetDate)
+        })).sort((a, b) => a.diff - b.diff);
+        
+        const forecast = forecasts[0]?.forecast;
 
         if (!forecast) {
+            console.log('No forecast found for date:', targetDate.toISOString());
+            console.log('Available dates:', data.list.map(item => new Date(item.dt * 1000).toDateString()));
             this.displayError(city.display, date);
             return;
         }
         
         card.querySelector('.card-title').textContent = city.display;
         card.querySelector('.card-subtitle').textContent = targetDate.toLocaleDateString();
+        card.querySelector('.weather-icon').style.display = 'block';
         card.querySelector('.weather-icon img').src = 
             `https://openweathermap.org/img/wn/${forecast.weather[0].icon}@2x.png`;
         card.querySelector('.temperature').textContent = 
@@ -305,14 +312,19 @@ class WeatherPlanner {
         
         dates.forEach(date => {
             const data = this.weatherData.get(date);
-            if (data) {
+            if (data?.list) {
                 const targetDate = new Date(date);
                 targetDate.setMinutes(targetDate.getMinutes() + targetDate.getTimezoneOffset());
+                targetDate.setHours(12, 0, 0, 0); // Set to noon for consistent matching
                 
-                const forecast = data.list.find(item => {
-                    const itemDate = new Date(item.dt * 1000);
-                    return itemDate.toDateString() === targetDate.toDateString();
-                });
+                // Find the forecast closest to noon
+                const forecasts = data.list.map(item => ({
+                    forecast: item,
+                    date: new Date(item.dt * 1000),
+                    diff: Math.abs(new Date(item.dt * 1000) - targetDate)
+                })).sort((a, b) => a.diff - b.diff);
+                
+                const forecast = forecasts[0]?.forecast;
                 
                 if (forecast) {
                     minTemp = Math.min(minTemp, forecast.main.temp);
