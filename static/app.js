@@ -1,150 +1,248 @@
 class WeatherPlanner {
     constructor() {
-        this.form = document.getElementById('tripForm');
-        this.cityInputs = document.getElementById('cityInputs');
-        this.weatherResults = document.getElementById('weatherResults');
+        this.citySearch = document.getElementById('citySearch');
+        this.cityResults = document.getElementById('cityResults');
         this.startDate = document.getElementById('startDate');
         this.endDate = document.getElementById('endDate');
+        this.refreshButton = document.getElementById('refreshButton');
+        this.itinerary = document.getElementById('itinerary');
+        this.weatherResults = document.getElementById('weatherResults');
+        
+        this.selectedCities = new Map(); // date -> city data
+        this.debounceTimer = null;
         
         this.setupEventListeners();
         this.loadFromStorage();
+        this.updateRefreshButton();
     }
 
     setupEventListeners() {
-        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
-        this.startDate.addEventListener('change', () => this.updateCityInputs());
-        this.endDate.addEventListener('change', () => this.updateCityInputs());
+        this.citySearch.addEventListener('input', () => this.handleCitySearch());
+        this.citySearch.addEventListener('focus', () => this.showCityResults());
+        document.addEventListener('click', (e) => this.handleClickOutside(e));
+        
+        this.startDate.addEventListener('change', () => this.handleDateChange());
+        this.endDate.addEventListener('change', () => this.handleDateChange());
+        this.refreshButton.addEventListener('click', () => this.refreshWeather());
+        
+        // Enable the date inputs with today as min date
+        const today = new Date().toISOString().split('T')[0];
+        this.startDate.min = today;
+        this.endDate.min = today;
     }
 
-    loadFromStorage() {
-        const savedData = localStorage.getItem('weatherPlannerData');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            this.startDate.value = data.startDate;
-            this.endDate.value = data.endDate;
-            this.updateCityInputs();
-            
-            // Fill in saved cities
-            const cityInputs = this.cityInputs.querySelectorAll('.city-field');
-            data.cities.forEach((city, index) => {
-                if (cityInputs[index]) {
-                    cityInputs[index].value = city;
-                }
-            });
+    handleCitySearch() {
+        clearTimeout(this.debounceTimer);
+        const query = this.citySearch.value.trim();
+        
+        if (query.length < 3) {
+            this.cityResults.innerHTML = '';
+            this.cityResults.classList.remove('show');
+            return;
         }
-    }
 
-    saveToStorage() {
-        const cities = Array.from(this.cityInputs.querySelectorAll('.city-field'))
-            .map(input => input.value);
-            
-        const data = {
-            startDate: this.startDate.value,
-            endDate: this.endDate.value,
-            cities: cities
-        };
-        
-        localStorage.setItem('weatherPlannerData', JSON.stringify(data));
-    }
-
-    updateCityInputs() {
-        if (!this.startDate.value || !this.endDate.value) return;
-        
-        const start = new Date(this.startDate.value);
-        const end = new Date(this.endDate.value);
-        const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        
-        this.cityInputs.innerHTML = '';
-        
-        for (let i = 0; i < days; i++) {
-            const currentDate = new Date(start);
-            currentDate.setDate(start.getDate() + i);
-            
-            const div = document.createElement('div');
-            div.className = 'city-input mb-3';
-            div.innerHTML = `
-                <label class="form-label">Day ${i + 1} City - ${currentDate.toLocaleDateString()}</label>
-                <input type="text" class="form-control city-field" required>
-            `;
-            
-            this.cityInputs.appendChild(div);
-        }
-    }
-
-    async handleSubmit(e) {
-        e.preventDefault();
-        this.weatherResults.innerHTML = '';
-        
-        const cities = Array.from(this.cityInputs.querySelectorAll('.city-field'))
-            .map(input => input.value);
-            
-        this.saveToStorage();
-        
-        const start = new Date(this.startDate.value);
-        
-        for (let i = 0; i < cities.length; i++) {
-            const currentDate = new Date(start);
-            currentDate.setDate(start.getDate() + i);
-            
+        this.debounceTimer = setTimeout(async () => {
             try {
-                const response = await fetch('/api/weather', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        city: cities[i],
-                        startDate: currentDate.toISOString()
-                    })
+                const response = await fetch(`/api/cities?q=${encodeURIComponent(query)}`);
+                const cities = await response.json();
+                
+                this.cityResults.innerHTML = '';
+                cities.forEach(city => {
+                    const div = document.createElement('div');
+                    div.className = 'city-result-item';
+                    div.textContent = city.display;
+                    div.addEventListener('click', () => this.selectCity(city));
+                    this.cityResults.appendChild(div);
                 });
                 
-                if (!response.ok) {
-                    throw new Error('Weather data not available');
-                }
-                
-                const data = await response.json();
-                this.displayWeather(data, currentDate, i + 1);
+                this.cityResults.classList.add('show');
             } catch (error) {
-                this.displayError(cities[i], i + 1);
+                console.error('Error searching cities:', error);
+            }
+        }, 300);
+    }
+
+    showCityResults() {
+        if (this.cityResults.children.length > 0) {
+            this.cityResults.classList.add('show');
+        }
+    }
+
+    handleClickOutside(event) {
+        if (!this.citySearch.contains(event.target) && !this.cityResults.contains(event.target)) {
+            this.cityResults.classList.remove('show');
+        }
+    }
+
+    selectCity(city) {
+        if (!this.startDate.value) {
+            alert('Please select a start date first');
+            return;
+        }
+
+        const date = this.startDate.value;
+        if (this.selectedCities.has(date)) {
+            alert('A city is already selected for this date');
+            return;
+        }
+
+        this.selectedCities.set(date, city);
+        this.citySearch.value = '';
+        this.cityResults.classList.remove('show');
+        
+        this.updateItinerary();
+        this.fetchWeatherForCity(date, city);
+        this.saveToStorage();
+        this.updateRefreshButton();
+    }
+
+    handleDateChange() {
+        if (this.startDate.value && this.endDate.value) {
+            if (this.startDate.value > this.endDate.value) {
+                this.endDate.value = this.startDate.value;
             }
         }
     }
 
-    displayWeather(data, date, dayNumber) {
+    updateItinerary() {
+        this.itinerary.innerHTML = '';
+        const sortedEntries = Array.from(this.selectedCities.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]));
+            
+        sortedEntries.forEach(([date, city]) => {
+            const div = document.createElement('div');
+            div.className = 'itinerary-item';
+            div.innerHTML = `
+                <div>
+                    <strong>${new Date(date).toLocaleDateString()}</strong>
+                    <span>${city.display}</span>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="weatherPlanner.removeCity('${date}')">
+                    Remove
+                </button>
+            `;
+            this.itinerary.appendChild(div);
+        });
+    }
+
+    async fetchWeatherForCity(date, city) {
+        try {
+            const response = await fetch('/api/weather', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    lat: city.lat,
+                    lon: city.lon
+                })
+            });
+            
+            if (!response.ok) throw new Error('Weather data not available');
+            
+            const data = await response.json();
+            this.displayWeather(data, date, city);
+        } catch (error) {
+            console.error('Error fetching weather:', error);
+            this.displayError(city.display, date);
+        }
+    }
+
+    displayWeather(data, date, city) {
+        // Remove existing weather card for this date if it exists
+        const existingCard = this.weatherResults.querySelector(`[data-date="${date}"]`);
+        if (existingCard) {
+            existingCard.remove();
+        }
+
         const template = document.getElementById('weatherCardTemplate');
         const card = template.content.cloneNode(true);
+        const cardElement = card.querySelector('.col-md-6');
+        cardElement.setAttribute('data-date', date);
         
         // Find the forecast for our specific date
-        const forecast = data.weather.list.find(item => {
+        const forecast = data.list.find(item => {
             const itemDate = new Date(item.dt * 1000);
-            return itemDate.toDateString() === date.toDateString();
-        }) || data.weather.list[0];
+            return itemDate.toDateString() === new Date(date).toDateString();
+        }) || data.list[0];
         
-        const cityName = `${data.city.name}${data.city.state ? ', ' + data.city.state : ''}, ${data.city.country}`;
-        
-        card.querySelector('.card-title').textContent = `Day ${dayNumber} - ${cityName}`;
-        card.querySelector('.card-subtitle').textContent = date.toLocaleDateString();
+        card.querySelector('.card-title').textContent = city.display;
+        card.querySelector('.card-subtitle').textContent = new Date(date).toLocaleDateString();
         card.querySelector('.weather-icon img').src = 
             `https://openweathermap.org/img/wn/${forecast.weather[0].icon}@2x.png`;
         card.querySelector('.temperature').textContent = 
             `${Math.round(forecast.main.temp)}°C (Feels like ${Math.round(forecast.main.feels_like)}°C)`;
         card.querySelector('.description').textContent = forecast.weather[0].description;
         
+        card.querySelector('.remove-btn').addEventListener('click', () => this.removeCity(date));
+        
         this.weatherResults.appendChild(card);
     }
 
-    displayError(city, dayNumber) {
+    displayError(cityName, date) {
         const template = document.getElementById('weatherCardTemplate');
         const card = template.content.cloneNode(true);
+        const cardElement = card.querySelector('.col-md-6');
+        cardElement.setAttribute('data-date', date);
         
-        card.querySelector('.card-title').textContent = `Day ${dayNumber} - ${city}`;
-        card.querySelector('.card-subtitle').textContent = 'Error';
+        card.querySelector('.card-title').textContent = cityName;
+        card.querySelector('.card-subtitle').textContent = new Date(date).toLocaleDateString();
         card.querySelector('.weather-icon').remove();
         card.querySelector('.temperature').textContent = 'Weather data not available';
-        card.querySelector('.description').textContent = 'Please check the city name and try again';
+        card.querySelector('.description').textContent = 'Please try refreshing later';
+        
+        card.querySelector('.remove-btn').addEventListener('click', () => this.removeCity(date));
         
         this.weatherResults.appendChild(card);
+    }
+
+    removeCity(date) {
+        this.selectedCities.delete(date);
+        this.updateItinerary();
+        
+        const card = this.weatherResults.querySelector(`[data-date="${date}"]`);
+        if (card) {
+            card.remove();
+        }
+        
+        this.saveToStorage();
+        this.updateRefreshButton();
+    }
+
+    refreshWeather() {
+        this.selectedCities.forEach((city, date) => {
+            this.fetchWeatherForCity(date, city);
+        });
+    }
+
+    updateRefreshButton() {
+        this.refreshButton.disabled = this.selectedCities.size === 0;
+    }
+
+    saveToStorage() {
+        const data = {
+            cities: Array.from(this.selectedCities.entries()).map(([date, city]) => ({
+                date,
+                city
+            }))
+        };
+        localStorage.setItem('weatherPlannerData', JSON.stringify(data));
+    }
+
+    loadFromStorage() {
+        const savedData = localStorage.getItem('weatherPlannerData');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            data.cities.forEach(item => {
+                this.selectedCities.set(item.date, item.city);
+            });
+            
+            this.updateItinerary();
+            this.selectedCities.forEach((city, date) => {
+                this.fetchWeatherForCity(date, city);
+            });
+        }
     }
 }
 
-new WeatherPlanner();
+const weatherPlanner = new WeatherPlanner();

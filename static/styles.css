@@ -7,10 +7,6 @@
     height: 64px;
 }
 
-.city-input {
-    position: relative;
-}
-
 .card {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -22,6 +18,42 @@
 
 .description {
     text-transform: capitalize;
+}
+
+.city-results {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    display: none;
+    margin-top: 0.25rem;
+}
+
+.city-results.show {
+    display: block;
+}
+
+.city-result-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+.city-result-item:hover {
+    background-color: #f8f9fa;
+}
+
+.itinerary-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
 }
 
 @media (max-width: 768px) {
