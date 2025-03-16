@@ -23,42 +23,65 @@
                     <label for="startDate" class="form-label">Date</label>
                     <input type="date" class="form-control" id="startDate" aria-label="Date">
                 </div>
-                <button id="refreshButton" class="btn btn-primary" disabled>Refresh Forecasts</button>
+                <button id="refreshButton" class="btn btn-primary mb-4" disabled>Refresh Forecasts</button>
+                
+                <div id="forecastSummary" class="card mb-4" style="display: none;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">Trip Summary</h5>
+                            <button class="btn btn-sm btn-outline-primary" id="toggleSummary">Show/Hide</button>
+                        </div>
+                        <div id="summaryContent">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <p class="mb-2"><strong>Date Range:</strong> <span id="summaryDateRange"></span></p>
+                                    <p class="mb-2"><strong>Cities:</strong> <span id="summaryCities"></span></p>
+                                </div>
+                                <div class="col-sm-6">
+                                    <p class="mb-2"><strong>Temperature Range:</strong> <span id="summaryTempRange"></span></p>
+                                    <p class="mb-2"><strong>Weather Conditions:</strong> <span id="summaryConditions"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="weatherResults" class="row g-4">
+                </div>
             </div>
         </div>
 
         <div id="itinerary" class="mb-4"></div>
-        <div id="weatherResults" class="row g-2"></div>
-    </div>
 
-    <template id="weatherCardTemplate">
-        <div class="col-6 col-md-4 col-lg-3 weather-card">
-            <div class="card h-100">
-                <div class="card-body p-2">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <h6 class="card-title mb-1"></h6>
-                            <small class="card-subtitle text-muted d-block"></small>
+        <template id="weatherCardTemplate">
+            <div class="col-6 col-md-4 col-lg-3 weather-card">
+                <div class="card h-100">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="card-title mb-1"></h6>
+                                <small class="card-subtitle text-muted d-block"></small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger remove-btn">&times;</button>
                         </div>
-                        <button class="btn btn-sm btn-outline-danger remove-btn">&times;</button>
+                        <div class="weather-icon text-center">
+                            <img src="" alt="Weather icon">
+                        </div>
+                        <p class="temperature mb-1"></p>
+                        <p class="description mb-0"></p>
                     </div>
-                    <div class="weather-icon text-center">
-                        <img src="" alt="Weather icon">
-                    </div>
-                    <p class="temperature mb-1"></p>
-                    <p class="description mb-0"></p>
                 </div>
             </div>
-        </div>
-    </template>
+        </template>
 
-    <script src="/app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(registration => console.log('ServiceWorker registered'))
-                .catch(err => console.log('ServiceWorker registration failed:', err));
-        }
-    </script>
+        <script src="/app.js"></script>
+        <script>
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker registration failed:', err));
+            }
+        </script>
+    </div>
 </body>
 </html>

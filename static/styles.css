@@ -113,6 +113,45 @@
     margin-bottom: 0.25rem;
 }
 
+/* Summary styles */
+#forecastSummary {
+    background-color: #f8f9fa;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease;
+}
+
+#forecastSummary:hover {
+    transform: translateY(-2px);
+}
+
+#summaryContent {
+    transition: all 0.3s ease;
+}
+
+#summaryContent.collapsed {
+    display: none;
+}
+
+#forecastSummary .card-title {
+    color: #495057;
+    font-size: 1.1rem;
+}
+
+#forecastSummary p {
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+#forecastSummary strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+#forecastSummary span {
+    color: #212529;
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 0.75rem;
@@ -164,5 +203,20 @@
     input[type="date"] {
         font-size: 0.9rem;
         padding: 0.4rem;
+    }
+    
+    /* Mobile summary styles */
+    #forecastSummary {
+        margin: -0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 0;
+    }
+    
+    #forecastSummary .card-title {
+        font-size: 1rem;
+    }
+    
+    #forecastSummary p {
+        font-size: 0.9rem;
     }
 }

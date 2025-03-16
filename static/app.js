@@ -7,6 +7,7 @@ class WeatherPlanner {
         this.endDate = document.getElementById('endDate');
         this.refreshButton = document.getElementById('refreshButton');
         this.selectedCities = new Map();
+        this.weatherData = new Map(); // Store weather data for summary
         
         this.setupEventListeners();
         this.loadFromStorage();
@@ -23,6 +24,12 @@ class WeatherPlanner {
         // Enable the date inputs with today as min date
         const today = new Date().toISOString().split('T')[0];
         this.startDate.min = today;
+        
+        // Setup summary toggle
+        document.getElementById('toggleSummary').addEventListener('click', () => {
+            const content = document.getElementById('summaryContent');
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        });
     }
 
     handleCitySearch() {
@@ -128,7 +135,9 @@ class WeatherPlanner {
             }
             
             const data = await response.json();
+            this.weatherData.set(date, data); // Store weather data
             this.displayWeather(data, date, city);
+            this.updateSummary(); // Update summary after new data
         } catch (error) {
             console.error('Error fetching weather:', error);
             this.displayError(city.display, date);
@@ -148,7 +157,10 @@ class WeatherPlanner {
         cardElement.setAttribute('data-date', date);
         
         // Find the forecast for our specific date
+        // Add timezone offset to match local date
         const targetDate = new Date(date);
+        targetDate.setMinutes(targetDate.getMinutes() + targetDate.getTimezoneOffset());
+        
         const forecast = data.list.find(item => {
             const itemDate = new Date(item.dt * 1000);
             return itemDate.toDateString() === targetDate.toDateString();
@@ -179,8 +191,12 @@ class WeatherPlanner {
         const cardElement = card.querySelector('.weather-card');
         cardElement.setAttribute('data-date', date);
         
+        // Add timezone offset to match local date
+        const targetDate = new Date(date);
+        targetDate.setMinutes(targetDate.getMinutes() + targetDate.getTimezoneOffset());
+        
         card.querySelector('.card-title').textContent = cityName;
-        card.querySelector('.card-subtitle').textContent = new Date(date).toLocaleDateString();
+        card.querySelector('.card-subtitle').textContent = targetDate.toLocaleDateString();
         card.querySelector('.weather-icon').style.display = 'none';
         card.querySelector('.temperature').textContent = 'N/A';
         card.querySelector('.description').innerHTML = '<small>Forecast not available</small>';
@@ -193,6 +209,7 @@ class WeatherPlanner {
 
     removeCity(date) {
         this.selectedCities.delete(date);
+        this.weatherData.delete(date); // Remove weather data
         
         const card = this.weatherResults.querySelector(`[data-date="${date}"]`);
         if (card) {
@@ -200,6 +217,7 @@ class WeatherPlanner {
         }
         
         this.updateItinerary();
+        this.updateSummary(); // Update summary after removal
         this.saveToStorage();
         this.updateRefreshButton();
     }
@@ -235,9 +253,14 @@ class WeatherPlanner {
             .forEach(([date, city]) => {
                 const item = document.createElement('div');
                 item.className = 'itinerary-item';
+                
+                // Add timezone offset to match local date
+                const targetDate = new Date(date);
+                targetDate.setMinutes(targetDate.getMinutes() + targetDate.getTimezoneOffset());
+                
                 item.innerHTML = `
                     <div>
-                        <strong>${new Date(date).toLocaleDateString()}</strong>
+                        <strong>${targetDate.toLocaleDateString()}</strong>
                         ${city.display}
                     </div>
                     <button class="btn btn-sm btn-outline-danger remove-btn" data-date="${date}">
@@ -250,10 +273,73 @@ class WeatherPlanner {
             });
     }
 
+    updateSummary() {
+        const forecastSummary = document.getElementById('forecastSummary');
+        if (this.selectedCities.size === 0) {
+            forecastSummary.style.display = 'none';
+            return;
+        }
+        
+        forecastSummary.style.display = 'block';
+        
+        // Get all dates and sort them
+        const dates = Array.from(this.selectedCities.keys()).sort();
+        
+        // Format date range
+        const startDate = new Date(dates[0]);
+        const endDate = new Date(dates[dates.length - 1]);
+        startDate.setMinutes(startDate.getMinutes() + startDate.getTimezoneOffset());
+        endDate.setMinutes(endDate.getMinutes() + endDate.getTimezoneOffset());
+        
+        document.getElementById('summaryDateRange').textContent = 
+            `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+        
+        // Get unique cities
+        const cities = new Set(Array.from(this.selectedCities.values()).map(city => city.display));
+        document.getElementById('summaryCities').textContent = Array.from(cities).join(', ');
+        
+        // Calculate temperature range and collect weather conditions
+        let minTemp = Infinity;
+        let maxTemp = -Infinity;
+        const conditions = new Set();
+        
+        dates.forEach(date => {
+            const data = this.weatherData.get(date);
+            if (data) {
+                const targetDate = new Date(date);
+                targetDate.setMinutes(targetDate.getMinutes() + targetDate.getTimezoneOffset());
+                
+                const forecast = data.list.find(item => {
+                    const itemDate = new Date(item.dt * 1000);
+                    return itemDate.toDateString() === targetDate.toDateString();
+                });
+                
+                if (forecast) {
+                    minTemp = Math.min(minTemp, forecast.main.temp);
+                    maxTemp = Math.max(maxTemp, forecast.main.temp);
+                    conditions.add(forecast.weather[0].main);
+                }
+            }
+        });
+        
+        // Update temperature range
+        if (minTemp !== Infinity && maxTemp !== -Infinity) {
+            document.getElementById('summaryTempRange').textContent = 
+                `${Math.round(minTemp)}°C to ${Math.round(maxTemp)}°C`;
+        } else {
+            document.getElementById('summaryTempRange').textContent = 'Not available';
+        }
+        
+        // Update weather conditions
+        document.getElementById('summaryConditions').textContent = 
+            Array.from(conditions).join(', ') || 'Not available';
+    }
+
     saveToStorage() {
         const data = Array.from(this.selectedCities.entries()).map(([date, city]) => ({
             date,
-            city
+            city,
+            weather: this.weatherData.get(date) // Save weather data
         }));
         localStorage.setItem('weatherPlanner', JSON.stringify(data));
     }
@@ -263,9 +349,15 @@ class WeatherPlanner {
         if (data) {
             JSON.parse(data).forEach(item => {
                 this.selectedCities.set(item.date, item.city);
-                this.fetchWeatherForCity(item.date, item.city);
+                if (item.weather) {
+                    this.weatherData.set(item.date, item.weather); // Restore weather data
+                    this.displayWeather(item.weather, item.date, item.city);
+                } else {
+                    this.fetchWeatherForCity(item.date, item.city);
+                }
             });
             this.updateItinerary();
+            this.updateSummary(); // Update summary after loading
         }
     }
 }
