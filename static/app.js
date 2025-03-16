@@ -54,8 +54,8 @@ class WeatherPlanner {
                     const div = document.createElement('div');
                     div.className = 'city-result-item text-danger';
                     div.innerHTML = `
-                        <p class="mb-1">The weather service is currently unavailable.</p>
-                        <small>New API keys take up to 2 hours to activate. Please try again later.</small>
+                        <p class="mb-0">The weather service is currently unavailable.</p>
+                        <small>New API keys take up to 2 hours to activate.</small>
                     `;
                     this.cityResults.appendChild(div);
                     this.cityResults.classList.add('show');
@@ -73,7 +73,12 @@ class WeatherPlanner {
                 this.cityResults.classList.add('show');
             } catch (error) {
                 console.error('Error searching cities:', error);
-                this.cityResults.innerHTML = '<div class="city-result-item text-danger">Error searching cities. Please try again.</div>';
+                this.cityResults.innerHTML = `
+                    <div class="city-result-item text-danger">
+                        <p class="mb-0">Error searching cities.</p>
+                        <small>Please try again later.</small>
+                    </div>
+                `;
                 this.cityResults.classList.add('show');
             }
         }, 300);
@@ -176,7 +181,7 @@ class WeatherPlanner {
 
         const template = document.getElementById('weatherCardTemplate');
         const card = template.content.cloneNode(true);
-        const cardElement = card.querySelector('.col-md-6');
+        const cardElement = card.querySelector('.weather-card');
         cardElement.setAttribute('data-date', date);
         
         // Find the forecast for our specific date
@@ -202,7 +207,7 @@ class WeatherPlanner {
     displayError(cityName, date) {
         const template = document.getElementById('weatherCardTemplate');
         const card = template.content.cloneNode(true);
-        const cardElement = card.querySelector('.col-md-6');
+        const cardElement = card.querySelector('.weather-card');
         cardElement.setAttribute('data-date', date);
         
         card.querySelector('.card-title').textContent = cityName;

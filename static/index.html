@@ -31,25 +31,25 @@
         </div>
 
         <div id="itinerary" class="mb-4"></div>
-        <div id="weatherResults" class="row g-4"></div>
+        <div id="weatherResults" class="row g-2"></div>
     </div>
 
     <template id="weatherCardTemplate">
-        <div class="col-md-6 col-lg-4">
+        <div class="col-6 col-md-4 col-lg-3 weather-card">
             <div class="card h-100">
-                <div class="card-body">
+                <div class="card-body p-2">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <h5 class="card-title mb-1"></h5>
-                            <h6 class="card-subtitle text-muted"></h6>
+                            <h6 class="card-title mb-1"></h6>
+                            <small class="card-subtitle text-muted d-block"></small>
                         </div>
                         <button class="btn btn-sm btn-outline-danger remove-btn">&times;</button>
                     </div>
                     <div class="weather-icon text-center">
                         <img src="" alt="Weather icon">
                     </div>
-                    <p class="temperature"></p>
-                    <p class="description"></p>
+                    <p class="temperature mb-1"></p>
+                    <p class="description mb-0"></p>
                 </div>
             </div>
         </div>
