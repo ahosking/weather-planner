@@ -160,4 +160,9 @@
     .itinerary-item button {
         align-self: flex-end;
     }
+    
+    input[type="date"] {
+        font-size: 0.9rem;
+        padding: 0.4rem;
+    }
 }
