@@ -10,6 +10,7 @@ class WeatherPlanner {
         
         this.selectedCities = new Map(); // date -> city data
         this.debounceTimer = null;
+        this.hasApiError = false;
         
         this.setupEventListeners();
         this.loadFromStorage();
@@ -47,6 +48,20 @@ class WeatherPlanner {
                 const cities = await response.json();
                 
                 this.cityResults.innerHTML = '';
+                
+                if (response.status === 200 && cities.length === 0 && !this.hasApiError) {
+                    this.hasApiError = true;
+                    const div = document.createElement('div');
+                    div.className = 'city-result-item text-danger';
+                    div.innerHTML = `
+                        <p class="mb-1">The weather service is currently unavailable.</p>
+                        <small>New API keys take up to 2 hours to activate. Please try again later.</small>
+                    `;
+                    this.cityResults.appendChild(div);
+                    this.cityResults.classList.add('show');
+                    return;
+                }
+                
                 cities.forEach(city => {
                     const div = document.createElement('div');
                     div.className = 'city-result-item';
@@ -58,6 +73,8 @@ class WeatherPlanner {
                 this.cityResults.classList.add('show');
             } catch (error) {
                 console.error('Error searching cities:', error);
+                this.cityResults.innerHTML = '<div class="city-result-item text-danger">Error searching cities. Please try again.</div>';
+                this.cityResults.classList.add('show');
             }
         }, 300);
     }
@@ -138,7 +155,9 @@ class WeatherPlanner {
                 })
             });
             
-            if (!response.ok) throw new Error('Weather data not available');
+            if (!response.ok) {
+                throw new Error('Weather data not available');
+            }
             
             const data = await response.json();
             this.displayWeather(data, date, city);
@@ -189,7 +208,7 @@ class WeatherPlanner {
         card.querySelector('.card-subtitle').textContent = new Date(date).toLocaleDateString();
         card.querySelector('.weather-icon').remove();
         card.querySelector('.temperature').textContent = 'Weather data not available';
-        card.querySelector('.description').textContent = 'Please try refreshing later';
+        card.querySelector('.description').innerHTML = 'The weather service is currently unavailable.<br><small>New API keys take up to 2 hours to activate. Please try again later.</small>';
         
         card.querySelector('.remove-btn').addEventListener('click', () => this.removeCity(date));
         

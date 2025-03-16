@@ -9,6 +9,11 @@
 
 .card {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
 }
 
 .temperature {
@@ -18,6 +23,11 @@
 
 .description {
     text-transform: capitalize;
+}
+
+.description small {
+    text-transform: none;
+    color: #dc3545;
 }
 
 .city-results {
@@ -31,6 +41,7 @@
     width: 100%;
     display: none;
     margin-top: 0.25rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .city-results.show {
@@ -38,22 +49,55 @@
 }
 
 .city-result-item {
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
     cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.city-result-item:last-child {
+    border-bottom: none;
 }
 
 .city-result-item:hover {
     background-color: #f8f9fa;
 }
 
+.city-result-item.text-danger {
+    cursor: default;
+    background-color: #fff5f5;
+}
+
+.city-result-item.text-danger:hover {
+    background-color: #fff5f5;
+}
+
+.city-result-item p {
+    margin-bottom: 0.25rem;
+}
+
+.city-result-item small {
+    opacity: 0.8;
+}
+
 .itinerary-item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 1rem;
-    padding: 0.5rem;
+    padding: 0.75rem;
     background: #f8f9fa;
     border-radius: 0.375rem;
     margin-bottom: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.itinerary-item:hover {
+    background: #e9ecef;
+}
+
+.itinerary-item strong {
+    display: block;
+    margin-bottom: 0.25rem;
 }
 
 @media (max-width: 768px) {
@@ -63,5 +107,15 @@
     
     h1 {
         font-size: 1.75rem;
+    }
+    
+    .itinerary-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .itinerary-item button {
+        align-self: flex-end;
     }
 }
